@@ -35,8 +35,6 @@ A = spMatrix(3142,3142,i = send, j = get, x = as.numeric(rep(1, length(get))))
 #j2<-sort(apply(unique(as.matrix(unlist(j[1]))),1,findindex))
 #A==j2
 dim(A)
-save(A , file = "wikiCountyGraph.RData")
-data<-load("wikiCountyGraph.RData")
 
 writeMM(A,file='test.txt')
 readMM(file='test.txt')
