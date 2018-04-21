@@ -135,4 +135,116 @@ filtered %>% filter(n>20) %>%
   geom_node_text(aes(label = name), vjust = 1.8, size = 3)
 
 ```
+## The following part is for the volatility analysis. we build ARIMA model and extract the residuals from it. we regarded the $residual^2$ as the volatility.
+## We choose AOBC, RGR, VSTO, OLN top four gun company stock adjusted price as our data. The data are all from 2017-01-03 to 2018-04-18.
+## For the four company seems like they all have unit root and we need to take difference. 
+## After differentiation the RGR and VSTO are already convert to stationary with no ACF and PACF in series. Thus we treated the diff.adjusted.price^2 as volatility.
+## As for the rest two series which is AOBC, OLN. After differentiation we fited ARMA model to get the residuals and treated residuals^2 as volatility.
 
+```{r}
+library("aTSA")
+library("TSA")
+```
+
+```{r}
+#AOBC
+getSymbols("AOBC") 
+#acf(AOBC$AOBC.Adjusted,lag.max = 1000)
+#pacf(AOBC$AOBC.Adjusted,lag.max = 1000)
+#plot(AOBC$AOBC.Adjusted)
+#unit root test
+aTSA::adf.test(AOBC$AOBC.Adjusted); tseries::adf.test(AOBC$AOBC.Adjusted)
+AOBC.Adjusted.diff<-diff(AOBC$AOBC.Adjusted)[-1]
+par(mfrow=c(1,2))
+#acf(AOBC.Adjusted.diff)
+#pacf(AOBC.Adjusted.diff)
+#Thus the original data in random walk
+##
+#eacf(AOBC.Adjusted.diff,ar.max=10,ma.max=10)
+Box.test(AOBC.Adjusted.diff,type="Ljung-Box",lag=12)
+#ARIMA(3,0,3)
+#ARIMA(3,0,6)
+#ARIMA(0,0,4)
+m1<-arima(AOBC.Open.diff,order=c(3,0,3),include.mean = TRUE)
+m2<-arima(AOBC.Open.diff,order=c(3,0,6),include.mean = TRUE)
+m3<-arima(AOBC.Open.diff,order=c(0,0,6),include.mean = TRUE)
+#confint(m1);tsdiag(m1)
+#confint(m2);tsdiag(m2)
+#confint(m3);tsdiag(m3)
+Box.test(m1$residuals,lag=12,fitdf = 1,type="Ljung-Box")
+Box.test(m2$residuals,lag=12,fitdf = 1,type="Ljung-Box")
+Box.test(m3$residuals,lag=12,fitdf = 1,type="Ljung-Box")
+m4<-arima(AOBC.Open.diff,order=c(0,0,6),include.mean = TRUE,fixed=c(0,0,0,NA,0,NA,0))
+#confint(m4);tsdiag(m4)
+Box.test(m4$residuals,lag=12,fitdf = 1,type="Ljung-Box")
+resi_square<-m4$residuals^2
+volatility<-xts(x = resi_square,order.by = index(AOBC.Open.diff))
+index(volatility)[volatility[,1]>1]
+plot(volatility,main="volatility of AOBC")
+plot(AOBC.Adjusted.diff)
+```
+
+```{r}
+#RGR
+getSymbols("RGR") 
+#acf(RGR$RGR.Adjusted)
+#pacf(RGR$RGR.Adjusted)
+#plot(RGR$RGR.Adjusted)
+aTSA::adf.test(RGR$RGR.Adjusted); tseries::adf.test(RGR$RGR.Adjusted)
+Box.test(RGR$RGR.Adjusted,type="Ljung-Box",lag=12)
+RGR.Adjusted.diff<-diff(RGR$RGR.Adjusted)[-1]
+par(mfrow=c(1,2))
+#acf(RGR.Adjusted.diff)
+#pacf(RGR.Adjusted.diff)
+#eacf(RGR.Adjusted.diff)
+Box.test(RGR.Adjusted.diff,type="Ljung-Box",lag=12)
+plot(RGR.Adjusted.diff)
+volatility<-xts(x=(RGR.Adjusted.diff-mean(RGR.Adjusted.diff))^2,order.by = index(RGR.Adjusted.diff))
+plot(volatility,main="volatility of RGR")
+```
+
+```{r}
+#VSTO
+getSymbols("VSTO") 
+VSTO.Adjusted<-VSTO$VSTO.Adjusted[!is.na(VSTO$VSTO.Adjusted)]
+#acf(VSTO.Adjusted)
+#pacf(VSTO.Adjusted)
+#plot(VSTO.Adjusted)
+aTSA::adf.test(VSTO.Adjusted); tseries::adf.test(VSTO.Adjusted)
+Box.test(VSTO.Adjusted,type="Ljung-Box",lag=12)
+VSTO.Adjusted.diff<-diff(VSTO.Adjusted)[-1]
+par(mfrow=c(1,2))
+#acf(VSTO.Adjusted.diff)
+#pacf(VSTO.Adjusted.diff)
+eacf(VSTO.Adjusted.diff)
+Box.test(VSTO.Adjusted.diff,type="Ljung-Box",lag=12)
+plot(VSTO.Adjusted.diff)
+volatility<-xts(x=(VSTO.Adjusted.diff-mean(VSTO.Adjusted.diff))^2,order.by = index(VSTO.Adjusted.diff))
+plot(volatility,main="volatility of VSTO")
+```
+
+```{r}
+getSymbols("OLN") 
+OLN.Adjusted<-OLN$OLN.Adjusted[!is.na(OLN$OLN.Adjusted)]
+#acf(OLN.Adjusted)
+#pacf(OLN.Adjusted)
+aTSA::adf.test(OLN.Adjusted); tseries::adf.test(OLN.Adjusted)
+Box.test(OLN.Adjusted,type="Ljung-Box",lag=12)
+OLN.Adjusted.diff<-diff(OLN.Adjusted)[-1]
+par(mfrow=c(1,2))
+#acf(OLN.Adjusted.diff)
+#pacf(OLN.Adjusted.diff)
+eacf(OLN.Adjusted.diff)
+Box.test(OLN.Adjusted.diff,type="Ljung-Box",lag=12)
+m1<-arima(OLN.Adjusted.diff,order=c(4,0,4),include.mean = TRUE)#,fixed=c(0,0,0,NA,0,NA,0))
+#confint(m1);tsdiag(m1)
+m2<-arima(OLN.Adjusted.diff,order=c(4,0,4),include.mean = TRUE,fixed=c(0,NA,NA,0,0,NA,NA,0,0))
+#confint(m2);tsdiag(m2)
+Box.test(m1$residuals,type="Ljung-Box",lag=12)
+Box.test(m2$residuals,type="Ljung-Box",lag=12)
+par(mfrow=c(1,3))
+#plot(OLN.Adjusted)
+plot(OLN.Adjusted.diff)
+volatility<-xts(x=m2$residuals^2,order.by = index(OLN.Adjusted.diff))
+plot(volatility,main="volatility of OLN")
+```
