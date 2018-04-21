@@ -30,6 +30,7 @@ data=tibble(company=c("American Outdoor Brands","Sturm, Ruger","Vista Outdoor","
 
 
 # 2. Get the stock data ---------------------------------------------------
+
 getSymbols("AOBC") #"AOBC" is the symbol for American Outdoor Brands
 tail(AOBC) # the latest few reords
 AOBCplot=chartSeries(AOBC,subset="2017::2018",theme="white") #plot the data
