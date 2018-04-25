@@ -30,6 +30,7 @@ library(tidyr)
 #library(sunburstR)
 library(aTSA)
 library(TSA)
+library(ggplot2)
 ```
 
 #After Mass Shooting
@@ -150,7 +151,7 @@ After differentiation the RGR and VSTO are already convert to stationary with no
 
 As for the rest two series which is AOBC, OLN. After differentiation we fited ARMA model to get the residuals and treated residuals^2 as volatility.
 
-```{r,warning=F,message=F,echo=F}
+```{r, echo=T, results='hide'}
 #AOBC
 getSymbols("AOBC") 
 #acf(AOBC$AOBC.Adjusted,lag.max = 1000)
@@ -182,13 +183,12 @@ m4<-arima(AOBC.Adjusted.diff,order=c(0,0,6),include.mean = TRUE,fixed=c(0,0,0,NA
 #confint(m4);tsdiag(m4)
 Box.test(m4$residuals,lag=12,fitdf = 1,type="Ljung-Box")
 resi_square<-m4$residuals^2
-volatility<-xts(x = resi_square,order.by = index(AOBC.Adjusted.diff))
-index(volatility)[volatility[,1]>1]
-plot(volatility,main="volatility of AOBC")
+volatility1<-xts(x = resi_square,order.by = index(AOBC.Adjusted.diff))
+plot(volatility1)
 plot(AOBC.Adjusted.diff)
 ```
 
-```{r,warning=F,message=F,echo=F}
+```{r, echo=T, results='hide'}
 #RGR
 getSymbols("RGR") 
 #acf(RGR$RGR.Adjusted)
@@ -203,11 +203,11 @@ par(mfrow=c(1,2))
 #eacf(RGR.Adjusted.diff)
 Box.test(RGR.Adjusted.diff,type="Ljung-Box",lag=12)
 plot(RGR.Adjusted.diff)
-volatility<-xts(x=(RGR.Adjusted.diff-mean(RGR.Adjusted.diff))^2,order.by = index(RGR.Adjusted.diff))
-plot(volatility,main="volatility of RGR")
+volatility2<-xts(x=(RGR.Adjusted.diff-mean(RGR.Adjusted.diff))^2,order.by = index(RGR.Adjusted.diff))
+plot(volatility2)
 ```
 
-```{r,warning=F,message=F,echo=F}
+```{r, echo=T, results='hide'}
 #VSTO
 getSymbols("VSTO") 
 VSTO.Adjusted<-VSTO$VSTO.Adjusted[!is.na(VSTO$VSTO.Adjusted)]
@@ -223,12 +223,12 @@ par(mfrow=c(1,2))
 eacf(VSTO.Adjusted.diff)
 Box.test(VSTO.Adjusted.diff,type="Ljung-Box",lag=12)
 plot(VSTO.Adjusted.diff)
-volatility<-xts(x=(VSTO.Adjusted.diff-mean(VSTO.Adjusted.diff))^2,order.by = index(VSTO.Adjusted.diff))
-plot(volatility,main="volatility of VSTO")
+volatility3<-xts(x=(VSTO.Adjusted.diff-mean(VSTO.Adjusted.diff))^2,order.by = index(VSTO.Adjusted.diff))
+plot(volatility3)
 ```
 
 
-```{r,warning=F,message=F,echo=F}
+```{r, echo=T, results='hide'}
 getSymbols("OLN") 
 OLN.Adjusted<-OLN$OLN.Adjusted[!is.na(OLN$OLN.Adjusted)]
 #acf(OLN.Adjusted)
@@ -250,10 +250,41 @@ Box.test(m2$residuals,type="Ljung-Box",lag=12)
 par(mfrow=c(1,3))
 #plot(OLN.Adjusted)
 plot(OLN.Adjusted.diff)
-volatility<-xts(x=m2$residuals^2,order.by = index(OLN.Adjusted.diff))
-plot(volatility,main="volatility of OLN")
+volatility4<-xts(x=m2$residuals^2,order.by = index(OLN.Adjusted.diff))
+plot(volatility4)
 ```
 
+```{r}
+dataset1<-data.frame(volatility=as.vector(volatility1),idx = index(volatility1), label=index(volatility1))
+dataset2<-data.frame(volatility=as.vector(volatility2),idx = index(volatility2), label=index(volatility2))
+dataset3<-data.frame(volatility=as.vector(volatility3),idx = index(volatility3), label=index(volatility3))
+dataset4<-data.frame(volatility=as.vector(volatility4),idx = index(volatility4), label=index(volatility4))
+
+ggplot(dataset1, aes(x= idx, y= volatility, color="pink", label=label, size=3))+
+  geom_point(color = "darkblue", size = 2) + 
+  geom_text(aes(label=ifelse(volatility>5,as.character(label),'')),hjust=0,vjust=0)+
+  ggtitle("AOBC's volatility") +
+  xlab("year") + ylab("volatility")
+
+ggplot(dataset2, aes(x= idx, y= volatility, color="pink", label=label, size=3))+
+  geom_point(color = "darkblue", size = 2) + 
+  geom_text(aes(label=ifelse(volatility>30,as.character(label),'')),hjust=0,vjust=0)+
+  ggtitle("RGR's volatility") +
+  xlab("year") + ylab("volatility")
+
+ggplot(dataset3, aes(x= idx, y= volatility, color="pink", label=label, size=3))+
+  geom_point(color = "darkblue", size = 2) + 
+  geom_text(aes(label=ifelse(volatility>10,as.character(label),'')),hjust=0,vjust=0)+
+  ggtitle("VSTO's volatility") +
+  xlab("year") + ylab("volatility")
+
+ggplot(dataset4, aes(x= idx, y= volatility, color="pink", label=label, size=3))+
+  geom_point(color = "darkblue", size = 2) + 
+  geom_text(aes(label=ifelse(volatility>5,as.character(label),'')),hjust=0,vjust=0)+
+  ggtitle("OLN's volatility") +
+  xlab("year") + ylab("volatility")
+
+```
 **Thereofore, based on our analysis, we conclude there is no impact on the gun manufacturers stocks after the mass shooting.**
 
 ##2. public opinion on guns
