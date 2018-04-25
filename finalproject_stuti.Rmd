@@ -1,0 +1,33 @@
+---
+title: "Untitled"
+author: "Stuti Pandey"
+date: "4/25/2018"
+output: github_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+```{r cars}
+library(data.table)
+library(tidyverse)
+library(tidytext)
+library(magrittr)
+data1<-fread("gun.tweets.csv")%>%as.tbl
+text_df1 <- data_frame(tweet = 1:nrow(data1), text = data1$text)
+tt1  = text_df1 %>% unnest_tokens(word, text)
+tt2=tt1 %>%group_by(tweet)%>%left_join(get_sentiments("bing"))%>%left_join(get_sentiments("afinn"))%>%count(sentiment)%>%
+  ungroup()%>%spread(sentiment, n, fill = 0)%>% mutate(sentiment = positive - negative)
+tt2<-tt2[,-4]
+tt2%>%ggplot(aes(x=sentiment))+geom_histogram(binwidth = 1,fill="pink")
+```
+#removng columns with both positve and negative as zero
+
+```{r pressure, echo=FALSE}
+tt3<-tt2[tt2$negative!= 0 | tt2$positive!= 0, ]
+tt3%>%ggplot(aes(x=sentiment))+geom_histogram(binwidth = 1,fill="green")
+```
+
+
