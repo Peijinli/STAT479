@@ -1,0 +1,96 @@
+---
+title: "Untitled"
+author: "Soyoung Kim"
+date: "April 29, 2018"
+output:
+  rmarkdown::github_document: default
+github_document: default
+
+```{r}
+library(devtools)
+library(rvest)
+library(tidyverse)
+library(stringr)
+library(quantmod) #financial package
+library(twitteR) #twitter from R
+library(rtweet)
+library(base64enc) #supplementary package to the above
+library(lubridate)
+library(tidytext)
+library(widyr)
+library(igraph)
+library(ggraph)
+library(tm)
+#library(wordcloud)
+#library(wordcloud2)
+library(Matrix)
+library(rARPACK)
+library(data.table)
+library(tidyr)
+#library(sunburstR)
+library(aTSA)
+library(TSA)
+#library(topicmodels)
+#library(NLP)
+
+
+mass=read_csv("Mother Jones' Investigation_ US Mass Shootings, 1982-2018 - US mass shootings.csv")
+# from https://www.motherjones.com/politics/2012/12/mass-shootings-mother-jones-full-data/
+# str(mass)
+# head(mass)
+mass2017=mass %>% 
+  mutate(Date=mdy(mass$Date)) %>% 
+  filter(Date>="2017-01-01") #covert the date to be the same format as in stock[]
+
+mass2017[,c(2,3,5,6)]
+
+
+data=tibble(company=c("American Outdoor Brands","Sturm, Ruger","Vista Outdoor","Olin"),
+            symbol=c("AOBC","RGR","VSTO","OLN"),
+            agency=c("NASDAQ","NYSE","NYSE","NYSE"))
+
+getSymbols(data$symbol,from="2017-01-01",adjust=TRUE) #all the four companies  
+stock=Cl(get(data$symbol[1])) #close column of AOBC
+for(i in 2:length(data$symbol))
+  stock=merge(stock,Cl(get(data$symbol[i]))) #closure stock price for all four companies     
+colnames(stock)=data$symbol
+# tail(stock)
+stockchange=stock%>% diff
+#head(stockchange)
+
+stock%>% as.tibble() %>% 
+  mutate(date=index(stock))  %>%  
+  gather('AOBC','RGR','VSTO','OLN',key="Co",value="price") %>% 
+  ggplot(aes(y=price,x=date))+geom_line(aes(color=Co))
+
+
+mdays=function(a,x){
+  day=matrix(nrow = x,ncol=length(a))
+  for (i in 1:x){
+    day[i,]=a+i}
+  c(a,day)}
+#create a function to extend the mass shooting date to the following x days
+
+daterange1=mdays(mass2017$Date,7)
+case=rep(1:14,c(6,6,6,2,5,6,5,6,3,6,5,5,5,6)) %>% as.tibble()
+
+```
+
+``````{r fig.height=12, fig.width=12}
+#adjusted the size of plot.
+for_plot=stock[daterange1] %>% as.tibble() %>% 
+  mutate(date=index(stock[daterange1])) %>%cbind(.,case) %>%  
+  gather('AOBC','RGR','VSTO','OLN',key="Co",value="price") %>%
+  `colnames<-`(c("date", "mass_shooting_case","company", "price"))
+
+
+
+
+
+
+for_plot%>% ggplot(aes(y=price,x=date, color=company))+geom_point() +facet_wrap(~ mass_shooting_case, ncol = 4, scales = "free", labeller=label_both)+geom_line()+labs(title = "7 days of stock price change on the mass shooting events ")
+
+
+```
+
+
